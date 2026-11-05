@@ -456,16 +456,29 @@
         </div>
     </footer>
 
-    <!-- Application JavaScript Logic -->
-    <script>
+    <!-- Firebase SDK Modules for Real-Time Cloud Storage -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase Setup
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'seniors-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+        let cloudSubmissions = [];
+
         // ADMIN AUTH CONSTANT
-        const ADMIN_PASS = "bololo2026@";
-        let isAdminLoggedIn = false;
-        let currentProofDataUrl = "";
-        let selectedEventForModal = null;
+        window.ADMIN_PASS = "bololo2026@";
+        window.isAdminLoggedIn = false;
+        window.currentProofDataUrl = "";
+        window.selectedEventForModal = null;
 
         // INITIAL SEED DATA
-        const initialEvents = [
+        window.initialEvents = [
             {
                 id: 'evt-pingpong-2026',
                 title: 'Ping Pong Tournament',
@@ -476,35 +489,132 @@
             }
         ];
 
-        // LOCAL STORAGE HELPERS
-        function getEvents() {
-            const saved = localStorage.getItem('seniors_events');
-            return saved ? JSON.parse(saved) : initialEvents;
+        // Initialize Firebase Authentication & Real-time Cloud Listener
+        async function initCloudDatabase() {
+            if (!firebaseConfig) {
+                console.warn("Firebase config not available. Falling back to local storage.");
+                return;
+            }
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Authenticate user
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        currentUser = user;
+                        listenToCloudSubmissions();
+                    }
+                });
+            } catch (err) {
+                console.error("Cloud Database Initialization Error:", err);
+            }
         }
 
-        function saveEvents(events) {
-            localStorage.setItem('seniors_events', JSON.stringify(events));
+        // Live Real-Time Data Listener from Cloud Database
+        function listenToCloudSubmissions() {
+            if (!db) return;
+            
+            // Reference to public collection according to security rules
+            const submissionsRef = collection(db, 'artifacts', appId, 'public', 'data', 'submissions');
+            
+            onSnapshot(submissionsRef, (snapshot) => {
+                cloudSubmissions = [];
+                snapshot.forEach((docSnap) => {
+                    cloudSubmissions.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                // Update UI in real-time across all devices
+                if (window.isAdminLoggedIn) {
+                    window.renderAdminDashboard();
+                }
+            }, (error) => {
+                console.error("Real-time snapshot error:", error);
+            });
         }
 
-        function getSubmissions() {
+        // Helper to get submissions (prefers Cloud Database, falls back to local storage)
+        window.getSubmissions = function() {
+            if (db && cloudSubmissions.length > 0) {
+                return cloudSubmissions;
+            }
             const saved = localStorage.getItem('seniors_submissions');
             return saved ? JSON.parse(saved) : [];
-        }
+        };
 
-        function saveSubmissions(submissions) {
+        // Save a new submission to the Cloud Database
+        window.saveSubmissionToCloud = async function(submission) {
+            const submissions = getSubmissions();
+            submissions.push(submission);
             localStorage.setItem('seniors_submissions', JSON.stringify(submissions));
-        }
 
-        // APP INIT & VIEW ROUTING
-        window.onload = function() {
-            if (!localStorage.getItem('seniors_events')) {
-                saveEvents(initialEvents);
+            if (db) {
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'submissions', submission.id);
+                    await setDoc(docRef, submission);
+                } catch (err) {
+                    console.error("Error saving to cloud database:", err);
+                }
             }
-            renderEventsGrid();
+        };
+
+        // Update submission status in Cloud Database
+        window.approveSubmissionInCloud = async function(subId) {
+            const submissions = getSubmissions();
+            const index = submissions.findIndex(s => s.id === subId);
+            if (index !== -1) {
+                submissions[index].status = 'Approved';
+                localStorage.setItem('seniors_submissions', JSON.stringify(submissions));
+            }
+
+            if (db) {
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'submissions', subId);
+                    await updateDoc(docRef, { status: 'Approved' });
+                } catch (err) {
+                    console.error("Error updating cloud database:", err);
+                }
+            }
+            window.renderAdminDashboard();
+        };
+
+        // Delete submission from Cloud Database
+        window.deleteSubmissionFromCloud = async function(subId) {
+            let submissions = getSubmissions();
+            submissions = submissions.filter(s => s.id !== subId);
+            localStorage.setItem('seniors_submissions', JSON.stringify(submissions));
+
+            if (db) {
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'submissions', subId);
+                    await deleteDoc(docRef);
+                } catch (err) {
+                    console.error("Error deleting from cloud database:", err);
+                }
+            }
+            window.renderAdminDashboard();
+        };
+
+        // Initialize cloud storage on window load
+        window.addEventListener('load', () => {
+            initCloudDatabase();
+        });
+
+        // App Init & View Routing
+        window.onload = function() {
+            window.renderEventsGrid();
             lucide.createIcons();
         };
 
-        function showView(viewName) {
+        window.showView = function(viewName) {
             document.getElementById('view-landing').classList.add('hidden');
             document.getElementById('view-events').classList.add('hidden');
             document.getElementById('view-admin').classList.add('hidden');
@@ -512,23 +622,23 @@
             if (viewName === 'landing') {
                 document.getElementById('view-landing').classList.remove('hidden');
             } else if (viewName === 'events') {
-                renderEventsGrid();
+                window.renderEventsGrid();
                 document.getElementById('view-events').classList.remove('hidden');
             } else if (viewName === 'admin') {
-                if (!isAdminLoggedIn) {
-                    openAdminAuthModal();
+                if (!window.isAdminLoggedIn) {
+                    window.openAdminAuthModal();
                 } else {
-                    renderAdminDashboard();
+                    window.renderAdminDashboard();
                     document.getElementById('view-admin').classList.remove('hidden');
                 }
             }
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        };
 
-        // EVENTS GRID RENDER
-        function renderEventsGrid() {
+        // Render Events Grid
+        window.renderEventsGrid = function() {
             const container = document.getElementById('events-container');
-            const events = getEvents();
+            const events = window.initialEvents;
             
             if (events.length === 0) {
                 container.innerHTML = `<div class="col-span-full text-center py-12 text-slate-500 font-mono text-sm">No active events listed. Check back soon.</div>`;
@@ -560,55 +670,54 @@
             `).join('');
 
             lucide.createIcons();
-        }
+        };
 
-        // TICKET MODAL & PAYMENT SUBMISSION LOGIC
-        function openTicketModal(eventId) {
-            const events = getEvents();
-            selectedEventForModal = events.find(e => e.id === eventId);
-            if (!selectedEventForModal) return;
+        // Ticket Modal Logic
+        window.openTicketModal = function(eventId) {
+            window.selectedEventForModal = window.initialEvents.find(e => e.id === eventId);
+            if (!window.selectedEventForModal) return;
 
-            document.getElementById('modal-event-id').value = selectedEventForModal.id;
-            document.getElementById('modal-event-title').innerText = selectedEventForModal.title;
+            document.getElementById('modal-event-id').value = window.selectedEventForModal.id;
+            document.getElementById('modal-event-title').innerText = window.selectedEventForModal.title;
             
-            const locUrl = selectedEventForModal.locationUrl || "https://www.bing.com/search?q=Enko%20Maputo&filters=local_ypid:%22YN7CBA22F853E5D2EE%22#&shtp=GetUrl&shid=8c9e39a0-dc03-40b9-ab60-56c5fc119801&form=EX0050";
-            document.getElementById('modal-event-meta').innerHTML = `${selectedEventForModal.date} | <a href="${locUrl}" target="_blank" rel="noopener noreferrer" class="text-teal-mint font-semibold hover:underline inline-flex items-center gap-0.5">${selectedEventForModal.location} <i data-lucide="external-link" class="w-3 h-3"></i></a>`;
+            const locUrl = window.selectedEventForModal.locationUrl;
+            document.getElementById('modal-event-meta').innerHTML = `${window.selectedEventForModal.date} | <a href="${locUrl}" target="_blank" rel="noopener noreferrer" class="text-teal-mint font-semibold hover:underline inline-flex items-center gap-0.5">${window.selectedEventForModal.location} <i data-lucide="external-link" class="w-3 h-3"></i></a>`;
 
             document.getElementById('sub-quantity').value = 1;
-            updateTotalCost();
-            resetProofFileInput();
+            window.updateTotalCost();
+            window.resetProofFileInput();
 
             document.getElementById('ticket-modal').classList.remove('hidden');
             lucide.createIcons();
-        }
+        };
 
-        function closeTicketModal() {
+        window.closeTicketModal = function() {
             document.getElementById('ticket-modal').classList.add('hidden');
-        }
+        };
 
-        function resetProofFileInput() {
-            currentProofDataUrl = "";
+        window.resetProofFileInput = function() {
+            window.currentProofDataUrl = "";
             document.getElementById('sub-proof-file').value = "";
             document.getElementById('file-upload-prompt').classList.remove('hidden');
             document.getElementById('file-upload-preview').classList.add('hidden');
-        }
+        };
 
-        function handleProofFileSelect(event) {
+        window.handleProofFileSelect = function(event) {
             const file = event.target.files[0];
             if (!file) return;
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                currentProofDataUrl = e.target.result;
-                document.getElementById('preview-img').src = currentProofDataUrl;
+                window.currentProofDataUrl = e.target.result;
+                document.getElementById('preview-img').src = window.currentProofDataUrl;
                 document.getElementById('preview-filename').innerText = file.name;
                 document.getElementById('file-upload-prompt').classList.add('hidden');
                 document.getElementById('file-upload-preview').classList.remove('hidden');
             };
             reader.readAsDataURL(file);
-        }
+        };
 
-        function updateTotalCost() {
+        window.updateTotalCost = function() {
             const selectedTier = document.querySelector('input[name="ticket_tier_choice"]:checked');
             const qtyInput = document.getElementById('sub-quantity');
             const totalDisplay = document.getElementById('sub-total-display');
@@ -620,12 +729,13 @@
             const total = unitPrice * quantity;
 
             totalDisplay.innerHTML = `<span>${total.toFixed(2)} MT</span>`;
-        }
+        };
 
-        function handlePaymentSubmission(e) {
+        // Payment Submission with Cloud Sync
+        window.handlePaymentSubmission = async function(e) {
             e.preventDefault();
 
-            if (!currentProofDataUrl) {
+            if (!window.currentProofDataUrl) {
                 alert("Please attach a screenshot of your transaction proof.");
                 return;
             }
@@ -643,25 +753,23 @@
                 id: 'sub-' + Date.now(),
                 refCode: refCode,
                 eventId: document.getElementById('modal-event-id').value,
-                eventTitle: selectedEventForModal ? selectedEventForModal.title : 'Ping Pong Tournament',
-                eventLocation: selectedEventForModal ? selectedEventForModal.location : 'Enko Maputo',
+                eventTitle: window.selectedEventForModal ? window.selectedEventForModal.title : 'Ping Pong Tournament',
+                eventLocation: window.selectedEventForModal ? window.selectedEventForModal.location : 'Enko Maputo',
                 tierLabel: tierLabel,
                 name: document.getElementById('sub-name').value,
                 whatsapp: whatsappNumber,
                 quantity: quantity,
                 totalAmount: totalAmount,
-                proofImage: currentProofDataUrl,
+                proofImage: window.currentProofDataUrl,
                 status: 'Pending Verification',
                 timestamp: new Date().toISOString()
             };
 
-            const submissions = getSubmissions();
-            submissions.push(submission);
-            saveSubmissions(submissions);
+            await window.saveSubmissionToCloud(submission);
 
-            closeTicketModal();
+            window.closeTicketModal();
             e.target.reset();
-            resetProofFileInput();
+            window.resetProofFileInput();
 
             document.getElementById('confirm-ref-code').innerText = refCode;
             
@@ -675,25 +783,25 @@
 
             document.getElementById('confirmation-modal').classList.remove('hidden');
             lucide.createIcons();
-        }
+        };
 
-        function closeConfirmationModal() {
+        window.closeConfirmationModal = function() {
             document.getElementById('confirmation-modal').classList.add('hidden');
-            showView('events');
-        }
+            window.showView('events');
+        };
 
-        // TICKET LOOKUP & QR PASS SYSTEM
-        function openLookupModal() {
+        // Ticket Lookup
+        window.openLookupModal = function() {
             document.getElementById('lookup-modal').classList.remove('hidden');
             document.getElementById('lookup-result').classList.add('hidden');
             document.getElementById('lookup-input').value = '';
-        }
+        };
 
-        function closeLookupModal() {
+        window.closeLookupModal = function() {
             document.getElementById('lookup-modal').classList.add('hidden');
-        }
+        };
 
-        function handleTicketSearch() {
+        window.handleTicketSearch = function() {
             const query = document.getElementById('lookup-input').value.trim().toUpperCase();
             const resultDiv = document.getElementById('lookup-result');
             
@@ -703,7 +811,7 @@
                 return;
             }
 
-            const submissions = getSubmissions();
+            const submissions = window.getSubmissions();
             const match = submissions.find(s => s.refCode.toUpperCase() === query);
 
             if (!match) {
@@ -780,52 +888,52 @@
             `;
             resultDiv.classList.remove('hidden');
             lucide.createIcons();
-        }
+        };
 
-        function openProofPreviewModal(submissionId) {
-            const submissions = getSubmissions();
+        window.openProofPreviewModal = function(submissionId) {
+            const submissions = window.getSubmissions();
             const sub = submissions.find(s => s.id === submissionId);
             if (sub && sub.proofImage) {
                 document.getElementById('admin-modal-img').src = sub.proofImage;
                 document.getElementById('proof-preview-modal').classList.remove('hidden');
                 lucide.createIcons();
             }
-        }
+        };
 
-        function closeProofPreviewModal() {
+        window.closeProofPreviewModal = function() {
             document.getElementById('proof-preview-modal').classList.add('hidden');
-        }
+        };
 
-        // ADMIN AUTHENTICATION
-        function openAdminAuthModal() {
+        // Admin Auth
+        window.openAdminAuthModal = function() {
             document.getElementById('admin-pass-input').value = '';
             document.getElementById('admin-auth-modal').classList.remove('hidden');
-        }
+        };
 
-        function closeAdminAuthModal() {
+        window.closeAdminAuthModal = function() {
             document.getElementById('admin-auth-modal').classList.add('hidden');
-        }
+        };
 
-        function handleAdminLogin(e) {
+        window.handleAdminLogin = function(e) {
             e.preventDefault();
             const pass = document.getElementById('admin-pass-input').value;
-            if (pass === ADMIN_PASS) {
-                isAdminLoggedIn = true;
-                closeAdminAuthModal();
-                showView('admin');
+            if (pass === window.ADMIN_PASS) {
+                window.isAdminLoggedIn = true;
+                window.closeAdminAuthModal();
+                window.showView('admin');
             } else {
                 alert("Incorrect Admin Password.");
             }
-        }
+        };
 
-        function adminLogout() {
-            isAdminLoggedIn = false;
-            showView('landing');
-        }
+        window.adminLogout = function() {
+            window.isAdminLoggedIn = false;
+            window.showView('landing');
+        };
 
-        // ADMIN DASHBOARD
-        function renderAdminDashboard() {
-            const submissions = getSubmissions();
+        // Admin Dashboard Render
+        window.renderAdminDashboard = function() {
+            const submissions = window.getSubmissions();
             const totalSubs = submissions.length;
             const approvedSubs = submissions.filter(s => s.status === 'Approved').length;
             const pendingSubs = submissions.filter(s => s.status === 'Pending Verification').length;
@@ -869,11 +977,11 @@
                     </td>
                     <td class="p-4 text-right space-x-2">
                         ${sub.status !== 'Approved' ? `
-                            <button onclick="approveSubmission('${sub.id}')" class="px-2.5 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30 rounded text-[11px] font-bold">
+                            <button onclick="approveSubmissionInCloud('${sub.id}')" class="px-2.5 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30 rounded text-[11px] font-bold">
                                 Approve
                             </button>
                         ` : ''}
-                        <button onclick="deleteSubmission('${sub.id}')" class="px-2.5 py-1 bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30 rounded text-[11px] font-bold">
+                        <button onclick="deleteSubmissionFromCloud('${sub.id}')" class="px-2.5 py-1 bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30 rounded text-[11px] font-bold">
                             Delete
                         </button>
                     </td>
@@ -881,31 +989,14 @@
             `).join('');
 
             lucide.createIcons();
-        }
+        };
 
-        function approveSubmission(subId) {
-            const submissions = getSubmissions();
-            const index = submissions.findIndex(s => s.id === subId);
-            if (index !== -1) {
-                submissions[index].status = 'Approved';
-                saveSubmissions(submissions);
-                renderAdminDashboard();
-            }
-        }
+        window.updateAdminDashboard = function() {
+            window.renderAdminDashboard();
+        };
 
-        function deleteSubmission(subId) {
-            let submissions = getSubmissions();
-            submissions = submissions.filter(s => s.id !== subId);
-            saveSubmissions(submissions);
-            renderAdminDashboard();
-        }
-
-        function updateAdminDashboard() {
-            renderAdminDashboard();
-        }
-
-        // ADMIN QR SCAN & VERIFICATION
-        function adminVerifyScannedTicket() {
+        // Admin QR Verification Scanner
+        window.adminVerifyScannedTicket = function() {
             const code = document.getElementById('admin-scan-input').value.trim().toUpperCase();
             const resDiv = document.getElementById('admin-scan-result');
 
@@ -914,7 +1005,7 @@
                 return;
             }
 
-            const submissions = getSubmissions();
+            const submissions = window.getSubmissions();
             const sub = submissions.find(s => s.refCode.toUpperCase() === code);
 
             if (!sub) {
@@ -928,7 +1019,7 @@
             }
 
             resDiv.innerHTML = `<div class="p-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded">✅ VALID TICKET! <strong>${sub.name}</strong> (${sub.tierLabel}, Qty: ${sub.quantity})</div>`;
-        }
+        };
     </script>
 </body>
 </html>
