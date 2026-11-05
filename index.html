@@ -317,14 +317,9 @@
                         <input type="text" id="sub-name" required placeholder="John Doe" class="w-full bg-dark-surface border border-dark-border rounded p-3 text-white text-sm focus:outline-none border-glow">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Contact Phone *</label>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">WhatsApp Number *</label>
                         <input type="tel" id="sub-phone" required placeholder="+258 84 000 0000" class="w-full bg-dark-surface border border-dark-border rounded p-3 text-white text-sm focus:outline-none border-glow">
                     </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Email Address *</label>
-                    <input type="email" id="sub-email" required placeholder="student@enko.biz" class="w-full bg-dark-surface border border-dark-border rounded p-3 text-white text-sm focus:outline-none border-glow">
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -383,6 +378,10 @@
                 <span class="text-[10px] uppercase font-mono text-slate-400">Your Reference Code</span>
                 <div id="confirm-ref-code" class="text-2xl font-extrabold font-mono text-teal-mint tracking-wider"></div>
                 <span class="text-[11px] text-slate-500 block pt-1">Save this code to check your pass status & QR Code.</span>
+            </div>
+
+            <div id="whatsapp-share-container" class="pt-2">
+                <!-- Dynamically populated WhatsApp send link -->
             </div>
 
             <button onclick="closeConfirmationModal()" class="w-full py-3 bg-dark-surface hover:bg-dark-border text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
@@ -638,6 +637,7 @@
             const totalAmount = unitPrice * quantity;
 
             const refCode = 'SEN-' + Math.floor(100000 + Math.random() * 900000);
+            const whatsappNumber = document.getElementById('sub-phone').value;
 
             const submission = {
                 id: 'sub-' + Date.now(),
@@ -647,8 +647,7 @@
                 eventLocation: selectedEventForModal ? selectedEventForModal.location : 'Enko Maputo',
                 tierLabel: tierLabel,
                 name: document.getElementById('sub-name').value,
-                email: document.getElementById('sub-email').value,
-                phone: document.getElementById('sub-phone').value,
+                whatsapp: whatsappNumber,
                 quantity: quantity,
                 totalAmount: totalAmount,
                 proofImage: currentProofDataUrl,
@@ -665,7 +664,17 @@
             resetProofFileInput();
 
             document.getElementById('confirm-ref-code').innerText = refCode;
+            
+            // Generate WhatsApp share button
+            const waMsg = encodeURIComponent(`Hello! I have registered for The Seniors Event.\nName: ${submission.name}\nRef Code: ${refCode}\nTier: ${tierLabel} (Qty: ${quantity})\nTotal: ${totalAmount} MT`);
+            document.getElementById('whatsapp-share-container').innerHTML = `
+                <a href="https://wa.me/?text=${waMsg}" target="_blank" rel="noopener noreferrer" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 transition-colors">
+                    <i data-lucide="message-circle" class="w-4 h-4"></i> Send Details via WhatsApp
+                </a>
+            `;
+
             document.getElementById('confirmation-modal').classList.remove('hidden');
+            lucide.createIcons();
         }
 
         function closeConfirmationModal() {
@@ -741,6 +750,10 @@
                             <div class="flex justify-between border-b border-dark-border/60 pb-2">
                                 <span class="text-slate-400">Attendee Name:</span>
                                 <span class="font-bold text-white">${match.name}</span>
+                            </div>
+                            <div class="flex justify-between border-b border-dark-border/60 pb-2">
+                                <span class="text-slate-400">WhatsApp:</span>
+                                <span class="font-bold text-white">${match.whatsapp || '—'}</span>
                             </div>
                             <div class="flex justify-between border-b border-dark-border/60 pb-2">
                                 <span class="text-slate-400">Venue & Location:</span>
@@ -834,7 +847,7 @@
                     <td class="p-4 font-mono font-bold text-teal-mint">${sub.refCode}</td>
                     <td class="p-4">
                         <div class="font-bold text-white">${sub.name}</div>
-                        <div class="text-[11px] text-slate-400">${sub.email} • ${sub.phone}</div>
+                        <div class="text-[11px] text-slate-400">WA: ${sub.whatsapp || '—'}</div>
                     </td>
                     <td class="p-4">
                         <div class="text-slate-200">${sub.tierLabel}</div>
