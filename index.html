@@ -149,26 +149,50 @@
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-border pb-6">
                 <div>
                     <span class="text-xs font-mono text-teal-mint uppercase tracking-widest">Administrative Control</span>
-                    <h2 class="text-2xl font-bold text-white">Proof Verification Portal</h2>
+                    <h2 class="text-2xl font-bold text-white">Proof Verification & QR Scanner Portal</h2>
                 </div>
                 <button onclick="adminLogout()" class="self-start sm:self-auto px-3.5 py-1.5 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg text-xs font-bold hover:bg-red-500/20 transition-all">
                     Logout Admin
                 </button>
             </div>
 
-            <!-- Dashboard Stats -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
-                <div class="bg-dark-card border border-dark-border rounded-xl p-5">
-                    <span class="text-xs text-slate-400 font-medium">Total Submissions</span>
-                    <div id="stat-total-subs" class="text-2xl font-bold text-white font-mono mt-1">0</div>
+            <!-- Scanner & Quick Stats Row -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+                <!-- QR Code Scanner Box -->
+                <div class="bg-dark-card border border-teal-mint/30 rounded-xl p-5 space-y-4 md:col-span-1 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2 text-teal-mint font-bold text-xs uppercase mb-2">
+                            <i data-lucide="qr-code" class="w-4 h-4"></i>
+                            <span>Ticket QR Scanner</span>
+                        </div>
+                        <p class="text-slate-400 text-xs">Scan or input reference code to verify and check-in attendees at the event entrance.</p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex gap-2">
+                            <input type="text" id="admin-scan-input" placeholder="Scan or enter Ref (e.g. SEN-123456)" class="w-full bg-dark-surface border border-dark-border rounded p-2.5 text-white text-xs font-mono uppercase focus:outline-none border-glow">
+                            <button onclick="adminVerifyScannedTicket()" class="px-4 py-2 bg-teal-mint text-dark-base font-bold text-xs rounded hover:bg-teal-main transition-colors shrink-0">
+                                Verify
+                            </button>
+                        </div>
+                        <div id="admin-scan-result" class="text-xs font-mono min-h-[30px]"></div>
+                    </div>
                 </div>
-                <div class="bg-dark-card border border-dark-border rounded-xl p-5">
-                    <span class="text-xs text-slate-400 font-medium">Approved Passes</span>
-                    <div id="stat-approved-subs" class="text-2xl font-bold text-emerald-400 font-mono mt-1">0</div>
-                </div>
-                <div class="bg-dark-card border border-dark-border rounded-xl p-5">
-                    <span class="text-xs text-slate-400 font-medium">Pending Review</span>
-                    <div id="stat-pending-subs" class="text-2xl font-bold text-amber-300 font-mono mt-1">0</div>
+
+                <!-- Stats Counters -->
+                <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-dark-card border border-dark-border rounded-xl p-5 flex flex-col justify-center">
+                        <span class="text-xs text-slate-400 font-medium">Total Submissions</span>
+                        <div id="stat-total-subs" class="text-2xl font-bold text-white font-mono mt-1">0</div>
+                    </div>
+                    <div class="bg-dark-card border border-dark-border rounded-xl p-5 flex flex-col justify-center">
+                        <span class="text-xs text-slate-400 font-medium">Approved Passes</span>
+                        <div id="stat-approved-subs" class="text-2xl font-bold text-emerald-400 font-mono mt-1">0</div>
+                    </div>
+                    <div class="bg-dark-card border border-dark-border rounded-xl p-5 flex flex-col justify-center">
+                        <span class="text-xs text-slate-400 font-medium">Pending Review</span>
+                        <div id="stat-pending-subs" class="text-2xl font-bold text-amber-300 font-mono mt-1">0</div>
+                    </div>
                 </div>
             </div>
 
@@ -796,6 +820,8 @@
             document.getElementById('stat-total-subs').innerText = totalSubs;
             document.getElementById('stat-approved-subs').innerText = approvedSubs;
             document.getElementById('stat-pending-subs').innerText = pendingSubs;
+            document.getElementById('admin-scan-input').value = '';
+            document.getElementById('admin-scan-result').innerHTML = '';
 
             const tbody = document.getElementById('admin-submissions-table');
             if (submissions.length === 0) {
@@ -863,6 +889,32 @@
 
         function updateAdminDashboard() {
             renderAdminDashboard();
+        }
+
+        // ADMIN QR SCAN & VERIFICATION
+        function adminVerifyScannedTicket() {
+            const code = document.getElementById('admin-scan-input').value.trim().toUpperCase();
+            const resDiv = document.getElementById('admin-scan-result');
+
+            if (!code) {
+                resDiv.innerHTML = `<span class="text-red-400">Please enter a reference code.</span>`;
+                return;
+            }
+
+            const submissions = getSubmissions();
+            const sub = submissions.find(s => s.refCode.toUpperCase() === code);
+
+            if (!sub) {
+                resDiv.innerHTML = `<span class="text-red-400">❌ Ticket "${code}" not found in database!</span>`;
+                return;
+            }
+
+            if (sub.status !== 'Approved') {
+                resDiv.innerHTML = `<span class="text-amber-400">⚠️ Ticket "${code}" (${sub.name}) is pending approval. Please approve first.</span>`;
+                return;
+            }
+
+            resDiv.innerHTML = `<div class="p-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded">✅ VALID TICKET! <strong>${sub.name}</strong> (${sub.tierLabel}, Qty: ${sub.quantity})</div>`;
         }
     </script>
 </body>
