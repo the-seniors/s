@@ -162,50 +162,6 @@
             <!-- IMPORTANT: Replace YOUR_FORMSPREE_ENDPOINT with your actual key from Formspree (e.g. x2pqlmno) -->
             <form id="registration-form" action="https://formspree.io/f/YOUR_FORMSPREE_ENDPOINT" method="POST" enctype="multipart/form-data" class="space-y-4">
                 
-                <!-- Registration Tier / Category Selection -->
-                <div class="space-y-2">
-                    <label class="block text-xs font-bold uppercase text-slate-400">Select Category & Tier *</label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <!-- Enko Students -->
-                        <div class="bg-dark-surface p-3 rounded-xl border border-dark-border space-y-2">
-                            <span class="text-[11px] font-bold text-teal-mint uppercase block border-b border-dark-border pb-1">Enko Students</span>
-                            <label class="flex items-center justify-between p-2 rounded border border-dark-border hover:border-teal-mint/40 cursor-pointer bg-dark-card text-xs">
-                                <div class="flex items-center space-x-2">
-                                    <input type="radio" name="tier_type" value="Enko Student - Solo (50 MT)" checked class="text-teal-mint focus:ring-0">
-                                    <span>Solo Player</span>
-                                </div>
-                                <span class="font-bold text-teal-mint font-mono">50 MT</span>
-                            </label>
-                            <label class="flex items-center justify-between p-2 rounded border border-dark-border hover:border-teal-mint/40 cursor-pointer bg-dark-card text-xs">
-                                <div class="flex items-center space-x-2">
-                                    <input type="radio" name="tier_type" value="Enko Student - Duo (100 MT)" class="text-teal-mint focus:ring-0">
-                                    <span>Duo Team</span>
-                                </div>
-                                <span class="font-bold text-teal-mint font-mono">100 MT</span>
-                            </label>
-                        </div>
-
-                        <!-- Guests / External -->
-                        <div class="bg-dark-surface p-3 rounded-xl border border-dark-border space-y-2">
-                            <span class="text-[11px] font-bold text-amber-400 uppercase block border-b border-dark-border pb-1">Guests / External</span>
-                            <label class="flex items-center justify-between p-2 rounded border border-dark-border hover:border-teal-mint/40 cursor-pointer bg-dark-card text-xs">
-                                <div class="flex items-center space-x-2">
-                                    <input type="radio" name="tier_type" value="Guest - Solo (100 MT)" class="text-teal-mint focus:ring-0">
-                                    <span>Solo Player</span>
-                                </div>
-                                <span class="font-bold text-amber-400 font-mono">100 MT</span>
-                            </label>
-                            <label class="flex items-center justify-between p-2 rounded border border-dark-border hover:border-teal-mint/40 cursor-pointer bg-dark-card text-xs">
-                                <div class="flex items-center space-x-2">
-                                    <input type="radio" name="tier_type" value="Guest - Duo (200 MT)" class="text-teal-mint focus:ring-0">
-                                    <span>Duo Team</span>
-                                </div>
-                                <span class="font-bold text-amber-400 font-mono">200 MT</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
                 <div>
                     <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Full Name *</label>
                     <input type="text" name="name" required placeholder="John Doe" class="w-full bg-dark-surface border border-dark-border rounded p-3 text-white text-sm focus:outline-none border-glow">
@@ -258,6 +214,11 @@
         // Lucide icon initializer
         lucide.createIcons();
 
+        // Ensure landing page is shown and events section is hidden on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            showView('landing');
+        });
+
         // View navigation handlers
         function showView(viewName) {
             const landingView = document.getElementById('view-landing');
@@ -285,60 +246,4 @@
             document.getElementById('ticket-modal').classList.add('hidden');
         }
 
-        // JavaScript AJAX Form Submission (Formspree / Web3Forms)
-        document.getElementById('registration-form').addEventListener('submit', async function(event) {
-            event.preventDefault(); // Prevent page reload
-
-            const form = event.target;
-            const submitBtn = document.getElementById('submit-btn');
-            const successMsg = document.getElementById('form-success-msg');
-            const errorMsg = document.getElementById('form-error-msg');
-
-            errorMsg.classList.add('hidden');
-            submitBtn.disabled = true;
-            submitBtn.innerText = 'Submitting...';
-
-            const formData = new FormData(form);
-
-            // Set a timeout controller so it never hangs infinitely
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-            try {
-                const response = await fetch(form.action, {
-                    method: form.method,
-                    body: formData,
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-
-                if (response.ok) {
-                    form.reset();
-                    form.classList.add('hidden');
-                    successMsg.classList.remove('hidden');
-                } else {
-                    const data = await response.json();
-                    errorMsg.innerText = data.error || "Submission failed. Make sure your Formspree form ID is set correctly.";
-                    errorMsg.classList.remove('hidden');
-                }
-            } catch (error) {
-                clearTimeout(timeoutId);
-                console.error("Form submission error:", error);
-                if (error.name === 'AbortError') {
-                    errorMsg.innerText = "Request timed out. Please check your network connection and try again.";
-                } else {
-                    errorMsg.innerText = "Connection error. Make sure your Formspree endpoint URL is valid.";
-                }
-                errorMsg.classList.remove('hidden');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerText = 'Submit Registration';
-            }
-        });
-    </script>
-</body>
-</html>
+<!-- ... existing code -->
