@@ -124,7 +124,7 @@
         </section>
 
         <!-- VIEW 2: EVENTS EXPLORER (Hidden initially) -->
-        <section id="view-events" class="hidden w-full max-w-6xl mx-auto px-4 sm:px-6 py-12 space-y-8">
+        <section id="view-events" style="display: none !important;" class="w-full max-w-6xl mx-auto px-4 sm:px-6 py-12 space-y-8">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-dark-border pb-6">
                 <div>
                     <h2 class="text-2xl font-bold text-white tracking-tight">Active Events</h2>
@@ -159,22 +159,44 @@
             </div>
 
             <!-- Formspree / Web3Forms Form -->
-            <!-- IMPORTANT: Replace YOUR_FORMSPREE_ENDPOINT with your actual key from Formspree (e.g. x2pqlmno) -->
             <form id="registration-form" action="https://formspree.io/f/YOUR_FORMSPREE_ENDPOINT" method="POST" enctype="multipart/form-data" class="space-y-4">
                 
                 <div>
                     <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Full Name *</label>
-                    <input type="text" name="name" required placeholder="John Doe" class="w-full bg-dark-surface border border-dark-border rounded p-3 text-white text-sm focus:outline-none border-glow">
+                    <input type="text" id="reg-name" name="name" required placeholder="John Doe" class="w-full bg-dark-surface border border-dark-border rounded p-3 text-white text-sm focus:outline-none border-glow">
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold uppercase text-slate-400 mb-1">WhatsApp / Phone *</label>
-                        <input type="tel" name="phone" required placeholder="+258 84 000 0000" class="w-full bg-dark-surface border border-dark-border rounded p-3 text-white text-sm focus:outline-none border-glow">
+                        <input type="tel" id="reg-phone" name="phone" required placeholder="+258 84 000 0000" class="w-full bg-dark-surface border border-dark-border rounded p-3 text-white text-sm focus:outline-none border-glow">
                     </div>
                     <div>
                         <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Quantity *</label>
                         <input type="number" name="quantity" min="1" max="10" value="1" required class="w-full bg-dark-surface border border-dark-border rounded p-3 text-white text-sm focus:outline-none border-glow">
+                    </div>
+                </div>
+
+                <!-- Registration Tier Selection -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold uppercase text-slate-400">Select Category *</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label class="flex items-center space-x-2 bg-dark-surface border border-dark-border p-3 rounded-lg cursor-pointer hover:border-teal-mint/50">
+                            <input type="radio" name="tier_type" value="Enko Student - Solo (50 MT)" checked class="text-teal-mint focus:ring-0">
+                            <span class="text-xs text-slate-200 font-semibold">Enko Student Solo (50 MT)</span>
+                        </label>
+                        <label class="flex items-center space-x-2 bg-dark-surface border border-dark-border p-3 rounded-lg cursor-pointer hover:border-teal-mint/50">
+                            <input type="radio" name="tier_type" value="Enko Student - Duo (100 MT)" class="text-teal-mint focus:ring-0">
+                            <span class="text-xs text-slate-200 font-semibold">Enko Student Duo (100 MT)</span>
+                        </label>
+                        <label class="flex items-center space-x-2 bg-dark-surface border border-dark-border p-3 rounded-lg cursor-pointer hover:border-teal-mint/50">
+                            <input type="radio" name="tier_type" value="Guest - Solo (100 MT)" class="text-teal-mint focus:ring-0">
+                            <span class="text-xs text-slate-200 font-semibold">Guest Solo (100 MT)</span>
+                        </label>
+                        <label class="flex items-center space-x-2 bg-dark-surface border border-dark-border p-3 rounded-lg cursor-pointer hover:border-teal-mint/50">
+                            <input type="radio" name="tier_type" value="Guest - Duo (200 MT)" class="text-teal-mint focus:ring-0">
+                            <span class="text-xs text-slate-200 font-semibold">Guest Duo (200 MT)</span>
+                        </label>
                     </div>
                 </div>
 
@@ -191,12 +213,20 @@
             </form>
 
             <!-- Success Message Notification -->
-            <div id="form-success-msg" class="hidden bg-teal-mint/10 border border-teal-mint/40 rounded-xl p-4 text-center space-y-2">
-                <div class="w-10 h-10 rounded-full bg-teal-mint/20 text-teal-mint flex items-center justify-center mx-auto">
-                    <i data-lucide="check" class="w-6 h-6"></i>
+            <div id="form-success-msg" class="hidden bg-dark-surface border border-teal-mint/40 rounded-xl p-6 text-center space-y-4">
+                <div class="w-12 h-12 rounded-full bg-teal-mint/20 text-teal-mint flex items-center justify-center mx-auto">
+                    <i data-lucide="check-circle" class="w-7 h-7"></i>
                 </div>
-                <h4 class="text-white font-bold text-base">Thank You!</h4>
-                <p class="text-xs text-slate-300">Your registration has been submitted successfully.</p>
+                <div>
+                    <h4 class="text-white font-bold text-lg">Submission Received!</h4>
+                    <p class="text-xs text-slate-300 mt-2 leading-relaxed">
+                        Thank you for registering. We (the Admins) have received your proof of payment and details. Your entry code and verification pass will be sent directly to your <strong class="text-teal-mint">WhatsApp number</strong> shortly!
+                    </p>
+                </div>
+                <div id="whatsapp-direct-link" class="pt-2"></div>
+                <button onclick="closeTicketModal()" class="w-full py-2.5 bg-dark-card border border-dark-border text-slate-300 hover:text-white rounded-lg text-xs font-semibold transition-colors">
+                    Close Window
+                </button>
             </div>
         </div>
     </div>
@@ -225,11 +255,11 @@
             const eventsView = document.getElementById('view-events');
             
             if (viewName === 'landing') {
-                if (landingView) landingView.classList.remove('hidden');
-                if (eventsView) eventsView.classList.add('hidden');
+                if (landingView) landingView.style.setProperty('display', 'block', 'important');
+                if (eventsView) eventsView.style.setProperty('display', 'none', 'important');
             } else if (viewName === 'events') {
-                if (landingView) landingView.classList.add('hidden');
-                if (eventsView) eventsView.classList.remove('hidden');
+                if (landingView) landingView.style.setProperty('display', 'none', 'important');
+                if (eventsView) eventsView.style.setProperty('display', 'block', 'important');
             }
         }
 
@@ -239,6 +269,9 @@
 
         function openRegistrationModal(eventName) {
             document.getElementById('modal-event-title').innerText = eventName;
+            document.getElementById('registration-form').reset();
+            document.getElementById('registration-form').classList.remove('hidden');
+            document.getElementById('form-success-msg').classList.add('hidden');
             document.getElementById('ticket-modal').classList.remove('hidden');
         }
 
@@ -246,4 +279,57 @@
             document.getElementById('ticket-modal').classList.add('hidden');
         }
 
-<!-- ... existing code -->
+        // Form submit handler via AJAX
+        document.getElementById('registration-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const submitBtn = document.getElementById('submit-btn');
+            const errorMsg = document.getElementById('form-error-msg');
+            const successMsg = document.getElementById('form-success-msg');
+            const whatsappBox = document.getElementById('whatsapp-direct-link');
+
+            const nameVal = document.getElementById('reg-name').value;
+            const phoneVal = document.getElementById('reg-phone').value;
+
+            submitBtn.innerText = 'Sending Submission...';
+            submitBtn.disabled = true;
+            errorMsg.classList.add('hidden');
+
+            try {
+                const formData = new FormData(form);
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    form.classList.add('hidden');
+                    successMsg.classList.remove('hidden');
+                    
+                    // Admin WhatsApp Direct Link setup (e.g. Yolanda: +258 844308430)
+                    const adminPhone = "258844308430"; 
+                    const waText = encodeURIComponent(`Hello Admin, I have submitted my registration on the site.\nName: ${nameVal}\nPhone: ${phoneVal}`);
+                    whatsappBox.innerHTML = `
+                        <a href="https://wa.me/${adminPhone}?text=${waText}" target="_blank" class="inline-flex items-center justify-center gap-2 w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase rounded-lg transition-colors">
+                            <span>Send Notification directly on WhatsApp</span>
+                        </a>
+                    `;
+                } else {
+                    const data = await response.json();
+                    errorMsg.innerText = data.errors ? data.errors.map(err => err.message).join(", ") : "Error submitting form. Check your endpoint URL.";
+                    errorMsg.classList.remove('hidden');
+                }
+            } catch (err) {
+                errorMsg.innerText = "Network error. Please try again or check your Formspree endpoint.";
+                errorMsg.classList.remove('hidden');
+            } finally {
+                submitBtn.innerText = 'Submit Registration';
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
