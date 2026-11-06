@@ -116,15 +116,15 @@
             </h1>
 
             <div class="pt-6">
-                <button onclick="showView('events')" class="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-teal-main to-teal-mint text-dark-base font-extrabold text-sm uppercase tracking-wider rounded-xl hover:shadow-[0_0_30px_rgba(0,242,254,0.3)] hover:scale-105 transition-all flex items-center justify-center gap-2 mx-auto">
+                <button onclick="showEventsView()" class="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-teal-main to-teal-mint text-dark-base font-extrabold text-sm uppercase tracking-wider rounded-xl hover:shadow-[0_0_30px_rgba(0,242,254,0.3)] hover:scale-105 transition-all flex items-center justify-center gap-2 mx-auto">
                     <span>Find Events</span>
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
             </div>
         </section>
 
-        <!-- VIEW 2: EVENTS EXPLORER -->
-        <section id="view-events" class="w-full max-w-6xl mx-auto px-4 sm:px-6 py-12 space-y-8">
+        <!-- VIEW 2: EVENTS EXPLORER (Hidden initially) -->
+        <section id="view-events" class="hidden w-full max-w-6xl mx-auto px-4 sm:px-6 py-12 space-y-8">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-dark-border pb-6">
                 <div>
                     <h2 class="text-2xl font-bold text-white tracking-tight">Active Events</h2>
@@ -159,18 +159,56 @@
             </div>
 
             <!-- Formspree / Web3Forms Form -->
-            <!-- REPLACE 'YOUR_FORMSPREE_ENDPOINT' WITH YOUR ACTUAL FORMSPREE FORM ID (e.g., https://formspree.io/f/xbjnqwe) -->
-            <form id="registration-form" action="https://formspree.io/f/YOUR_FORMSPREE_ENDPOINT" method="POST" class="space-y-4">
+            <!-- IMPORTANT: Replace YOUR_FORMSPREE_ENDPOINT with your actual key from Formspree (e.g. x2pqlmno) -->
+            <form id="registration-form" action="https://formspree.io/f/YOUR_FORMSPREE_ENDPOINT" method="POST" enctype="multipart/form-data" class="space-y-4">
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Full Name *</label>
-                        <input type="text" name="name" required placeholder="John Doe" class="w-full bg-dark-surface border border-dark-border rounded p-3 text-white text-sm focus:outline-none border-glow">
+                <!-- Registration Tier / Category Selection -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold uppercase text-slate-400">Select Category & Tier *</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Enko Students -->
+                        <div class="bg-dark-surface p-3 rounded-xl border border-dark-border space-y-2">
+                            <span class="text-[11px] font-bold text-teal-mint uppercase block border-b border-dark-border pb-1">Enko Students</span>
+                            <label class="flex items-center justify-between p-2 rounded border border-dark-border hover:border-teal-mint/40 cursor-pointer bg-dark-card text-xs">
+                                <div class="flex items-center space-x-2">
+                                    <input type="radio" name="tier_type" value="Enko Student - Solo (50 MT)" checked class="text-teal-mint focus:ring-0">
+                                    <span>Solo Player</span>
+                                </div>
+                                <span class="font-bold text-teal-mint font-mono">50 MT</span>
+                            </label>
+                            <label class="flex items-center justify-between p-2 rounded border border-dark-border hover:border-teal-mint/40 cursor-pointer bg-dark-card text-xs">
+                                <div class="flex items-center space-x-2">
+                                    <input type="radio" name="tier_type" value="Enko Student - Duo (100 MT)" class="text-teal-mint focus:ring-0">
+                                    <span>Duo Team</span>
+                                </div>
+                                <span class="font-bold text-teal-mint font-mono">100 MT</span>
+                            </label>
+                        </div>
+
+                        <!-- Guests / External -->
+                        <div class="bg-dark-surface p-3 rounded-xl border border-dark-border space-y-2">
+                            <span class="text-[11px] font-bold text-amber-400 uppercase block border-b border-dark-border pb-1">Guests / External</span>
+                            <label class="flex items-center justify-between p-2 rounded border border-dark-border hover:border-teal-mint/40 cursor-pointer bg-dark-card text-xs">
+                                <div class="flex items-center space-x-2">
+                                    <input type="radio" name="tier_type" value="Guest - Solo (100 MT)" class="text-teal-mint focus:ring-0">
+                                    <span>Solo Player</span>
+                                </div>
+                                <span class="font-bold text-amber-400 font-mono">100 MT</span>
+                            </label>
+                            <label class="flex items-center justify-between p-2 rounded border border-dark-border hover:border-teal-mint/40 cursor-pointer bg-dark-card text-xs">
+                                <div class="flex items-center space-x-2">
+                                    <input type="radio" name="tier_type" value="Guest - Duo (200 MT)" class="text-teal-mint focus:ring-0">
+                                    <span>Duo Team</span>
+                                </div>
+                                <span class="font-bold text-amber-400 font-mono">200 MT</span>
+                            </label>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Email Address *</label>
-                        <input type="email" name="email" required placeholder="john@example.com" class="w-full bg-dark-surface border border-dark-border rounded p-3 text-white text-sm focus:outline-none border-glow">
-                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Full Name *</label>
+                    <input type="text" name="name" required placeholder="John Doe" class="w-full bg-dark-surface border border-dark-border rounded p-3 text-white text-sm focus:outline-none border-glow">
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -185,9 +223,11 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Proof of Payment / Screenshot Link (Optional)</label>
-                    <input type="url" name="proof_url" placeholder="https://..." class="w-full bg-dark-surface border border-dark-border rounded p-3 text-white text-sm focus:outline-none border-glow">
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Proof of Payment Screenshot *</label>
+                    <input type="file" name="attachment" accept="image/*" required class="w-full bg-dark-surface border border-dark-border rounded p-3 text-white text-xs focus:outline-none border-glow text-slate-300">
                 </div>
+
+                <div id="form-error-msg" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 p-2.5 rounded text-center"></div>
 
                 <button type="submit" id="submit-btn" class="w-full py-4 bg-gradient-to-r from-teal-main to-teal-mint text-dark-base font-extrabold text-xs uppercase tracking-wider rounded-lg hover:shadow-[0_0_20px_rgba(0,242,254,0.3)] transition-all">
                     Submit Registration
@@ -218,6 +258,24 @@
         // Lucide icon initializer
         lucide.createIcons();
 
+        // View navigation handlers
+        function showView(viewName) {
+            const landingView = document.getElementById('view-landing');
+            const eventsView = document.getElementById('view-events');
+            
+            if (viewName === 'landing') {
+                if (landingView) landingView.classList.remove('hidden');
+                if (eventsView) eventsView.classList.add('hidden');
+            } else if (viewName === 'events') {
+                if (landingView) landingView.classList.add('hidden');
+                if (eventsView) eventsView.classList.remove('hidden');
+            }
+        }
+
+        function showEventsView() {
+            showView('events');
+        }
+
         function openRegistrationModal(eventName) {
             document.getElementById('modal-event-title').innerText = eventName;
             document.getElementById('ticket-modal').classList.remove('hidden');
@@ -234,11 +292,17 @@
             const form = event.target;
             const submitBtn = document.getElementById('submit-btn');
             const successMsg = document.getElementById('form-success-msg');
+            const errorMsg = document.getElementById('form-error-msg');
 
+            errorMsg.classList.add('hidden');
             submitBtn.disabled = true;
             submitBtn.innerText = 'Submitting...';
 
             const formData = new FormData(form);
+
+            // Set a timeout controller so it never hangs infinitely
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000);
 
             try {
                 const response = await fetch(form.action, {
@@ -246,19 +310,30 @@
                     body: formData,
                     headers: {
                         'Accept': 'application/json'
-                    }
+                    },
+                    signal: controller.signal
                 });
+
+                clearTimeout(timeoutId);
 
                 if (response.ok) {
                     form.reset();
                     form.classList.add('hidden');
                     successMsg.classList.remove('hidden');
                 } else {
-                    alert("There was an issue submitting your form. Please try again.");
+                    const data = await response.json();
+                    errorMsg.innerText = data.error || "Submission failed. Make sure your Formspree form ID is set correctly.";
+                    errorMsg.classList.remove('hidden');
                 }
             } catch (error) {
+                clearTimeout(timeoutId);
                 console.error("Form submission error:", error);
-                alert("An error occurred. Please check your internet connection.");
+                if (error.name === 'AbortError') {
+                    errorMsg.innerText = "Request timed out. Please check your network connection and try again.";
+                } else {
+                    errorMsg.innerText = "Connection error. Make sure your Formspree endpoint URL is valid.";
+                }
+                errorMsg.classList.remove('hidden');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerText = 'Submit Registration';
